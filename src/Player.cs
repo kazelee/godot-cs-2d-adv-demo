@@ -24,15 +24,21 @@ public partial class Player : CharacterBody2D
     public bool IsComboRequested = false;
 
     // public int AttackAmount = 2;
+
+    public Damage PendingDamage;
     
     public Node2D Graphics;
     public AnimationPlayer AnimationPlayer;
     public Timer CoyoteTimer;
     public Timer JumpRequestTimer;
     public Timer WallJumpTimer;
+    public Timer InvincibleTimer;
     public Node StateMachine;
+    public Stats Stats;
     public RayCast2D HandChecker;
     public RayCast2D FootChecker;
+    public Hurtbox Hurtbox;
+    public Hitbox Hitbox;
 	
     public override void _Ready() {
         Graphics = GetNode<Node2D>("Graphics");
@@ -40,13 +46,18 @@ public partial class Player : CharacterBody2D
         CoyoteTimer = GetNode<Timer>("CoyoteTimer");
         JumpRequestTimer = GetNode<Timer>("JumpRequestTimer");
         WallJumpTimer = GetNode<Timer>("WallJumpTimer");
+        InvincibleTimer = GetNode<Timer>("InvincibleTimer");
         HandChecker = GetNode<RayCast2D>("Graphics/HandChecker");
         FootChecker = GetNode<RayCast2D>("Graphics/FootChecker");
-        
+        Stats = GetNode<Stats>("Stats");
         StateMachine = GetNode<Node>("StateMachine");
+        Hurtbox = GetNode<Hurtbox>("Hurtbox");
+        Hitbox = GetNode<Hitbox>("Hitbox");
         foreach (PlayerState state in StateMachine.GetChildren()) { // make sure state is PlayerState
             state.Player = this;
         }
+
+        Hurtbox.Hurt += Hurtbox_OnHurt;
     }
 
     public void Move(float delta, float gravity, float acceleration) {
@@ -72,8 +83,22 @@ public partial class Player : CharacterBody2D
         MoveAndSlide();
     }
 
+    public void Die() {
+        GetTree().ReloadCurrentScene();
+    }
+    
     public bool CanWallSlide() {
         return IsOnWall() && HandChecker.IsColliding() && FootChecker.IsColliding();
+    }
+
+    public void Hurtbox_OnHurt(Hitbox hitbox) {
+        if (InvincibleTimer.TimeLeft > 0) {
+            return;
+        }
+
+        PendingDamage = new Damage();
+        PendingDamage.Amount = 1;
+        PendingDamage.Source = hitbox.Owner as Node2D;
     }
     
     public override void _UnhandledInput(InputEvent @event) {

@@ -33,6 +33,17 @@ public partial class PlayerState : State {
         // if (Player == null) {
         //     return;
         // }
+        if (Player.InvincibleTimer.TimeLeft > 0) {
+            var modulate = Player.Graphics.Modulate;
+            modulate.A = Mathf.Sin(Time.GetTicksMsec() / 20f) * 0.5f * 0.5f;
+            Player.Graphics.Modulate = modulate;
+        }
+        else {
+            var modulate = Player.Graphics.Modulate;
+            modulate.A = 1f;
+            Player.Graphics.Modulate = modulate;
+        }
+        
     }
 
     public override void Exit() {
@@ -49,6 +60,17 @@ public partial class PlayerState : State {
         //     return;
         // }
 
+        if (Player.Stats.Health == 0) {
+            StateMachine.TransitionTo("Dying");
+            Returned = true;
+            return;
+        }
+        
+        if (Player.PendingDamage != null && this is not PlayerHurtState) {
+            StateMachine.TransitionTo("Hurt");
+            Returned = true;
+        }
+        
         var canJump = Player.IsOnFloor() || Player.CoyoteTimer.TimeLeft > 0 || Player.WallJumpTimer.TimeLeft > 0;
         var shouldJump = canJump && Player.JumpRequestTimer.TimeLeft > 0;
         if (shouldJump) {
@@ -66,5 +88,5 @@ public partial class PlayerState : State {
         var direction = Input.GetAxis("move_left", "move_right");
         IsStill = Mathf.IsZeroApprox(direction) && Mathf.IsZeroApprox(Player.Velocity.X);
     }
-    
+
 }
